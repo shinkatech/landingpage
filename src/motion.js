@@ -67,60 +67,33 @@ function initLoader(onDone) {
 }
 
 function revealPage() {
-  const title = new SplitType(".hero__title .line", { types: "chars" });
-  const lead = new SplitType(".hero__lead", { types: "lines" });
-  const last = title.chars?.[title.chars.length - 1];
-  if (last) last.classList.add("char");
+  const titleEl = document.querySelector(".lu-hero__title") || document.querySelector(".hero__title");
+  const lineEls = titleEl?.querySelectorAll(".line") ?? [];
+  const title = lineEls.length ? new SplitType(lineEls, { types: "words" }) : null;
+  const actions = document.querySelector(".lu-hero__actions") || document.querySelector(".hero__actions");
+  const lead = document.querySelector(".lu-hero__lead");
+  const meta = document.querySelector(".lu-hero__meta");
+  const kicker = document.querySelector(".lu-hero__copy .lu-kicker");
+  const orb = document.querySelector(".lu-orb");
 
-  gsap.set(
-    [title.chars, lead.lines, ".hero__top", ".hero__actions", ".hero__scroll", ".nav", ".hero__title", ".hero__lead", ".hero__glow", ".hero__slash"],
-    { opacity: 0 },
-  );
-  gsap.set(title.chars, { yPercent: 130, rotateX: 55, filter: "blur(10px)" });
-  gsap.set(lead.lines, { y: 28 });
+  gsap.set([".nav", titleEl, actions, lead, meta, kicker, orb].filter(Boolean), { opacity: 0 });
+  if (title?.words?.length) gsap.set(title.words, { opacity: 0, y: 18 });
 
-  const tl = gsap.timeline({ defaults: { ease: "expo.out" } });
-  tl.to(".nav", { opacity: 1, y: 0, duration: 0.8 })
-    .to(".hero__top", { opacity: 1, duration: 0.7 }, "-=0.4")
-    .to(".hero__title", { opacity: 1, duration: 0.01 }, "<")
-    .to(".hero__lead", { opacity: 1, duration: 0.01 }, "<")
-    .to(".hero__slash", { opacity: 1, scale: 1, duration: 0.5 }, "<")
-    .to(
-      title.chars,
-      {
-        opacity: 1,
-        yPercent: 0,
-        rotateX: 0,
-        filter: "blur(0px)",
-        duration: 1.25,
-        stagger: 0.07,
-      },
-      "-=0.4",
-    )
-    .to(".hero__glow", { opacity: 1, duration: 1.1 }, "-=0.9")
-    .fromTo(
-      last,
-      { scale: 0.6, color: "#f3f3f1" },
-      { scale: 1, color: "#e30613", duration: 0.7, ease: "back.out(2)" },
-      "-=0.85",
-    )
-    .to(lead.lines, { opacity: 1, y: 0, duration: 0.9, stagger: 0.08 }, "-=0.55")
-    .to(".hero__actions", { opacity: 1, y: 0, duration: 0.7 }, "-=0.5")
-    .to(".hero__scroll", { opacity: 1, duration: 0.6 }, "-=0.4")
-    .add(() => glitchTitle());
-
-  gsap.fromTo(
-    ".hero__kanji",
-    { opacity: 0, rotate: -10, scale: 0.92 },
-    { opacity: 1, rotate: 0, scale: 1, duration: 1.8, ease: "expo.out", delay: 0.25 },
-  );
-
-  const titleEl = document.querySelector(".hero__title");
-  titleEl?.addEventListener("mouseenter", glitchTitle);
+  const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
+  tl.to(".nav", { opacity: 1, y: 0, duration: 0.6 });
+  if (kicker) tl.to(kicker, { opacity: 1, duration: 0.45 }, "-=0.25");
+  if (titleEl) tl.to(titleEl, { opacity: 1, duration: 0.01 }, "<");
+  if (title?.words?.length) {
+    tl.to(title.words, { opacity: 1, y: 0, duration: 0.85, stagger: 0.04 }, "-=0.1");
+  }
+  if (lead) tl.to(lead, { opacity: 1, y: 0, duration: 0.6 }, "-=0.45");
+  if (actions) tl.to(actions, { opacity: 1, y: 0, duration: 0.55 }, "-=0.4");
+  if (meta) tl.to(meta, { opacity: 1, duration: 0.5 }, "-=0.35");
+  if (orb) tl.to(orb, { opacity: 1, duration: 0.9 }, "-=0.7");
 }
 
 function glitchTitle() {
-  const titleEl = document.querySelector(".hero__title");
+  const titleEl = document.querySelector(".lu-hero__title") || document.querySelector(".hero__title");
   if (!titleEl || reduceMotion) return;
   titleEl.classList.remove("is-glitch");
   void titleEl.offsetWidth;
@@ -141,22 +114,7 @@ function initPointer() {
 }
 
 function initParallax() {
-  if (isTouch || reduceMotion) return () => {};
-
-  const slash = document.querySelector(".hero__slash");
-  const glow = document.querySelector(".hero__glow");
-  const kanji = document.querySelector(".hero__kanji");
-
-  const tick = () => {
-    const x = (state.mouse.x / innerWidth - 0.5) * 2;
-    const y = (state.mouse.y / innerHeight - 0.5) * 2;
-    if (slash) gsap.to(slash, { x: x * 28, y: y * 16, duration: 0.9, ease: "power3.out", overwrite: "auto" });
-    if (glow) gsap.to(glow, { x: x * 40, y: y * 24, duration: 1.1, ease: "power3.out", overwrite: "auto" });
-    if (kanji) gsap.to(kanji, { x: x * -22, duration: 1.2, ease: "power3.out", overwrite: "auto" });
-  };
-
-  gsap.ticker.add(tick);
-  return () => gsap.ticker.remove(tick);
+  return () => {};
 }
 
 function initCardTilt() {
@@ -300,84 +258,42 @@ function initScrollFx() {
     scrollTrigger: { scrub: 0.25 },
   });
 
-  gsap.utils.toArray(".manifesto__title, .method__head h2, .cta__title, .services__head h2, .works__head h2").forEach((title) => {
-    const split = new SplitType(title, { types: "lines, words" });
-    gsap.from(split.words, {
-      yPercent: 120,
-      rotateX: 40,
+  gsap.utils.toArray(".lu-services .lu-head h2, .lu-method .lu-head h2, .lu-cta h2, .lu-line").forEach((title) => {
+    gsap.from(title, {
+      y: 20,
       opacity: 0,
-      stagger: 0.045,
-      duration: 1.05,
-      ease: "expo.out",
-      scrollTrigger: { trigger: title, start: "top 82%" },
+      duration: 0.9,
+      ease: "power3.out",
+      scrollTrigger: { trigger: title, start: "top 86%" },
     });
   });
 
-  gsap.from(".manifesto__lead", {
-    y: 48,
-    opacity: 0,
-    duration: 1.1,
-    ease: "expo.out",
-    scrollTrigger: { trigger: ".manifesto__lead", start: "top 85%" },
-  });
-
-  gsap.from(".manifesto__focus article", {
-    y: 36,
-    opacity: 0,
-    stagger: 0.12,
-    duration: 0.9,
-    ease: "expo.out",
-    scrollTrigger: { trigger: ".manifesto__focus", start: "top 86%" },
-  });
-
-  gsap.utils.toArray(".method__list li").forEach((item, index) => {
-    gsap.from(item, {
-      x: index % 2 === 0 ? -56 : 56,
+  [".lu-svc li", ".lu-steps li"].forEach((selector) => {
+    const items = gsap.utils.toArray(selector);
+    if (!items.length) return;
+    gsap.from(items, {
+      y: 40,
       opacity: 0,
-      duration: 1,
+      stagger: 0.1,
+      duration: 0.95,
       ease: "expo.out",
-      scrollTrigger: { trigger: item, start: "top 88%" },
-    });
-    ScrollTrigger.create({
-      trigger: item,
-      start: "top 70%",
-      onEnter: () => item.classList.add("is-in"),
+      scrollTrigger: { trigger: items[0], start: "top 86%" },
     });
   });
 
-  const kanjiMarks = document.querySelectorAll(".kanji-label span");
-  gsap.to(kanjiMarks, {
-    clipPath: "inset(0% 0 0 0)",
-    duration: 0.7,
-    stagger: 0.18,
-    ease: "power4.inOut",
-    scrollTrigger: { trigger: ".kanji-label", start: "top 88%" },
-  });
-
-  const footer = new SplitType(".footer__mark", { types: "chars" });
-  gsap.from(footer.chars, {
-    yPercent: 110,
-    opacity: 0,
-    stagger: 0.05,
-    duration: 1.1,
-    ease: "expo.out",
-    scrollTrigger: { trigger: ".footer__mark", start: "top 90%" },
-  });
-  initFooterBreak(footer.chars);
-
-  gsap.to(".cta__kanji", {
-    yPercent: -28,
-    rotate: 6,
-    ease: "none",
-    scrollTrigger: { trigger: ".cta", scrub: true },
-  });
-
-  gsap.to(".hero__kanji", {
-    y: 90,
-    ease: "none",
-    scrollTrigger: { trigger: ".hero", start: "top top", end: "bottom top", scrub: true },
-  });
-
+  const footerMark = document.querySelector(".footer__mark");
+  if (footerMark) {
+    const footer = new SplitType(footerMark, { types: "chars" });
+    gsap.from(footer.chars, {
+      yPercent: 110,
+      opacity: 0,
+      stagger: 0.05,
+      duration: 1.1,
+      ease: "expo.out",
+      scrollTrigger: { trigger: footerMark, start: "top 90%" },
+    });
+    initFooterBreak(footer.chars);
+  }
 }
 
 function initFooterBreak(chars) {
@@ -575,68 +491,6 @@ export function startMotion() {
     window.removeEventListener("resize", onResize);
     ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
     document.body.classList.remove("menu-open", "is-touch");
-    document.body.style.overflow = "";
-  };
-}
-
-let pageLenis = null;
-
-export function getLenis() {
-  return pageLenis;
-}
-
-export function startPageMotion() {
-  if (isTouch) document.body.classList.add("is-touch");
-
-  const stopCursor = initPointer();
-  initMagnetic();
-  const stopNav = initNav();
-  let lenisApi;
-
-  if (reduceMotion) {
-    gsap.set(".nav, [data-intro]", { opacity: 1 });
-  } else {
-    lenisApi = initLenis();
-    pageLenis = lenisApi.lenis;
-
-    gsap.to(".progress__bar", {
-      width: "100%",
-      ease: "none",
-      scrollTrigger: { scrub: 0.25 },
-    });
-
-    const title = new SplitType("[data-split]", { types: "chars" });
-    gsap.set(title.chars, { yPercent: 120, opacity: 0, rotateX: 50 });
-
-    gsap
-      .timeline({ defaults: { ease: "expo.out" } })
-      .to(".nav", { opacity: 1, duration: 0.8 })
-      .to("[data-intro]", { opacity: 1, duration: 0.01 }, "<")
-      .from("[data-intro]", { y: 36, duration: 1, stagger: 0.08 }, "<")
-      .to(title.chars, { yPercent: 0, opacity: 1, rotateX: 0, duration: 1.2, stagger: 0.05 }, "-=0.9");
-
-    gsap.utils.toArray("[data-reveal]").forEach((el) => {
-      gsap.from(el, {
-        y: 56,
-        opacity: 0,
-        duration: 1.05,
-        ease: "expo.out",
-        scrollTrigger: { trigger: el, start: "top 88%" },
-      });
-    });
-  }
-
-  const onResize = () => ScrollTrigger.refresh();
-  window.addEventListener("resize", onResize);
-
-  return () => {
-    stopCursor?.();
-    stopNav?.();
-    lenisApi?.destroy();
-    pageLenis = null;
-    window.removeEventListener("resize", onResize);
-    ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
-    document.body.classList.remove("menu-open", "is-touch", "case-open");
     document.body.style.overflow = "";
   };
 }
